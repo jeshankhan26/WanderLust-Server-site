@@ -130,6 +130,89 @@ async function run() {
         res.status(500).json({ message: "Failed to fetch users", error });
       }
     });
+    // ✅ GET a single user by ID
+    app.get("/adduser/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const user = await usersCollection.findOne({ _id: new ObjectId(id) });
+
+        if (!user) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        res.json(user);
+      } catch (error) {
+        console.error("❌ Failed to fetch user:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    // PATCH: Update User Role
+ app.patch('/updateRole/:id', async (req, res) => {
+  const userId = req.params.id;
+  const { role } = req.body;
+
+  if (!userId || !ObjectId.isValid(userId)) {
+    return res.status(400).json({ error: "Invalid user ID" });
+  }
+
+  if (!["user", "member"].includes(role)) {
+    return res.status(400).json({ error: "Invalid role" });
+  }
+
+  try {
+    const result = await usersCollection.updateOne(
+      { _id: new ObjectId(userId) },
+      { $set: { role } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ message: "Role updated successfully" });
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+// Update user route with image upload
+app.patch("/adduser/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, email, photoURL } = req.body;
+
+  try {
+    const result = await usersCollection.updateOne(
+      { _id: new ObjectId(id) },
+      {
+        $set: { name, email, photoURL },
+      }
+    );
+    res.send(result);
+  } catch (err) {
+    console.error("❌ Error updating user:", err);
+    res.status(500).send({ message: "Update failed", error: err.message });
+  }
+});
+// DELETE a user by ID
+app.delete("/adduser/:id", async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const query = { _id: new ObjectId(id) };
+    const result = await usersCollection.deleteOne(query);
+
+    if (result.deletedCount > 0) {
+      res.send({ success: true, message: "User deleted" });
+    } else {
+      res.status(404).send({ success: false, message: "User not found" });
+    }
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).send({ success: false, message: "Server error" });
+  }
+});
+
+
     // ✅ Correct server route for adding roles
     app.post("/api/roles", async (req, res) => {
       try {
@@ -151,6 +234,32 @@ async function run() {
         res.status(500).json({ message: "Internal server error" });
       }
     });
+// Express route - Search users by name, email, or role (partial, case-insensitive)
+app.get("/searchUsers", async (req, res) => {
+  const { query } = req.query;
+  if (!query) return res.json([]);
+
+  try {
+    const regex = new RegExp(query, "i"); // i = case-insensitive
+
+    const users = await usersCollection
+      .find({
+        $or: [
+          { name: { $regex: regex } },
+          { email: { $regex: regex } },
+          { role: { $regex: regex } },
+        ],
+      })
+      .toArray();
+
+    res.json(users);
+  } catch (error) {
+    console.error("Search error:", error);
+    res.status(500).json({ message: "Failed to search users" });
+  }
+});
+
+
     // Get All User_Role
     app.get("/api/roles", async (req, res) => {
       const cursor = roleCollection.find();
