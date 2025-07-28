@@ -15,7 +15,7 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.use(express.json());    
 
 // 🔐 Firebase Admin SDK using environment variables
 // const serviceAccount = require("./sportify-c0413-firebase-adminsdk-fbsvc-bef1671050.json");
@@ -50,6 +50,7 @@ async function run() {
     const usersCollection = database.collection("users");
     const roleCollection = database.collection("user_role");
     const serviceCollection = database.collection("service");
+    const packageCollection  = database.collection("package");
 
     // ✅ Firebase Token Verification Middleware
     const verifyFirebaseToken = async (req, res, next) => {
@@ -309,6 +310,88 @@ app.delete("/api/services/:id", async (req, res) => {
     res.status(500).send({ success: false, message: "Delete failed" });
   }
 });
+// Package Section
+app.post("/packageCollection", async (req, res) => {
+  const data = req.body;
+  const result = await packageCollection.insertOne(data);
+  res.send(result);
+});
+// GET all packages
+app.get("/api/packages", async (req, res) => {
+  try {
+    const packages = await packageCollection.find().toArray();
+    res.send(packages);
+  } catch (error) {
+    res.status(500).send({ error: "Failed to fetch packages" });
+  }
+});
+
+// DELETE a package
+app.delete("/api/packages/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await packageCollection.deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 1) {
+      res.send({ message: "Package deleted successfully" });
+    } else {
+      res.status(404).send({ error: "Package not found" });
+    }
+  } catch (error) {
+    res.status(500).send({ error: "Failed to delete package" });
+  }
+});
+// Get a single package
+// GET a single package by ID
+app.get("/api/packages/:id", async (req, res) => {
+  const { id } = req.params;
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID" });
+  }
+
+  try {
+    const result = await packageCollection.findOne({ _id: new ObjectId(id) });
+    if (!result) {
+      return res.status(404).json({ message: "Package not found" });
+    }
+    res.json(result);
+  } catch (error) {
+    console.error("❌ Error fetching package:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Put
+app.patch("/api/update/packages/:id", async (req, res) => {
+  const { id } = req.params;
+  const updatedData = { ...req.body };
+
+  if (!ObjectId.isValid(id)) {
+    return res.status(400).json({ message: "Invalid ID" });
+  }
+
+  // Remove _id if present in the update payload
+  if (updatedData._id) {
+    delete updatedData._id;
+  }
+
+  try {
+    const result = await packageCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updatedData }
+    );
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Package not found" });
+    }
+    res.json({ message: "Package updated successfully" });
+  } catch (error) {
+    console.error("PATCH update error stack:", error.stack);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
 
     // Rest Of MongoDB Code
 
