@@ -49,6 +49,7 @@ async function run() {
     const database = client.db("wanderlustDA");
     const usersCollection = database.collection("users");
     const roleCollection = database.collection("user_role");
+    const serviceCollection = database.collection("service");
 
     // ✅ Firebase Token Verification Middleware
     const verifyFirebaseToken = async (req, res, next) => {
@@ -273,6 +274,41 @@ app.get("/searchUsers", async (req, res) => {
       const result = await roleCollection.deleteOne(query);
       res.send(result);
     });
+    // Service Section
+    app.post("/api/services", async (req, res) => {
+  try {
+    const service = req.body;
+    const result = await serviceCollection.insertOne(service);
+    res.status(201).send(result);
+  } catch (error) {
+    console.error("❌ Error saving service:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+// Get all services
+app.get("/api/services", async (req, res) => {
+  try {
+    const services = await serviceCollection.find().toArray();
+    res.send(services);
+  } catch (err) {
+    res.status(500).send({ message: "Error fetching services" });
+  }
+});
+
+// Delete a service by ID
+app.delete("/api/services/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await serviceCollection.deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 1) {
+      res.send({ success: true });
+    } else {
+      res.status(404).send({ success: false, message: "Service not found" });
+    }
+  } catch (err) {
+    res.status(500).send({ success: false, message: "Delete failed" });
+  }
+});
 
     // Rest Of MongoDB Code
 
