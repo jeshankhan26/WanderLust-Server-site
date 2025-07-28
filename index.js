@@ -390,6 +390,49 @@ app.patch("/api/update/packages/:id", async (req, res) => {
   }
 });
 
+// Moderator Section
+ app.get("/api/mypost", verifyFirebaseToken, async (req, res) => {
+      try {
+        const email = req.user.email; // use req.user.email instead of authorEmail
+        // No search parameter or filter
+        const query = {
+          email: email, // assuming in DB the field is authorEmail
+        };
+
+        const userPosts = await packageCollection
+          .find(query)
+          .sort({ _id: -1 }) // sort descending by _id (latest first)
+          .toArray();
+
+        res.json(userPosts);
+      } catch (error) {
+        console.error("❌ Get Posts Error:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    // Update status
+app.put("/api/packages/status/:id", async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    const result = await packageCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Package not found" });
+    }
+
+    res.json({ message: "Status updated successfully" });
+  } catch (error) {
+    console.error("❌ Server error while updating status:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 
 
