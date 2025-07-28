@@ -51,6 +51,7 @@ async function run() {
     const roleCollection = database.collection("user_role");
     const serviceCollection = database.collection("service");
     const packageCollection  = database.collection("package");
+    const blogCollection   = database.collection("blog");
 
     // ✅ Firebase Token Verification Middleware
     const verifyFirebaseToken = async (req, res, next) => {
@@ -429,6 +430,80 @@ app.put("/api/packages/status/:id", async (req, res) => {
   } catch (error) {
     console.error("❌ Server error while updating status:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+app.post("/api/blogs", async (req, res) => {
+  const { title, article, thumbnail, email, status, videoUrl } = req.body;
+
+  if (!title || !article || !thumbnail || !email) {
+    return res.status(400).json({ message: "Missing required fields" });
+  }
+
+  const blog = {
+    title,
+    article,
+    thumbnail,
+    email,
+    status,
+    videoUrl: videoUrl || "", // ✅ handle optional
+  };
+
+  const result = await blogCollection.insertOne(blog);
+  res.status(201).json(result);
+});
+// My Post
+ app.get("/api/myblog", verifyFirebaseToken, async (req, res) => {
+      try {
+        const email = req.user.email; // use req.user.email instead of authorEmail
+        // No search parameter or filter
+        const query = {
+          email: email, // assuming in DB the field is authorEmail
+        };
+
+        const userPosts = await blogCollection
+          .find(query)
+          .sort({ _id: -1 }) // sort descending by _id (latest first)
+          .toArray();
+
+        res.json(userPosts);
+      } catch (error) {
+        console.error("❌ Get Posts Error:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    // Blog Status Update
+    app.put("/api/blog/status/:id", async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  try {
+    const result = await blogCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { status } }
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({ message: "Package not found" });
+    }
+
+    res.json({ message: "Status updated successfully" });
+  } catch (error) {
+    console.error("❌ Server error while updating status:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+// DELETE a package
+app.delete("/api/blog/:id", async (req, res) => {
+  const id = req.params.id;
+  try {
+    const result = await blogCollection.deleteOne({ _id: new ObjectId(id) });
+    if (result.deletedCount === 1) {
+      res.send({ message: "Package deleted successfully" });
+    } else {
+      res.status(404).send({ error: "Package not found" });
+    }
+  } catch (error) {
+    res.status(500).send({ error: "Failed to delete package" });
   }
 });
 
