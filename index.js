@@ -15,7 +15,7 @@ app.use(
   })
 );
 
-app.use(express.json());    
+app.use(express.json());
 
 // 🔐 Firebase Admin SDK using environment variables
 // const serviceAccount = require("./sportify-c0413-firebase-adminsdk-fbsvc-bef1671050.json");
@@ -50,8 +50,9 @@ async function run() {
     const usersCollection = database.collection("users");
     const roleCollection = database.collection("user_role");
     const serviceCollection = database.collection("service");
-    const packageCollection  = database.collection("package");
-    const blogCollection   = database.collection("blog");
+    const packageCollection = database.collection("package");
+    const blogCollection = database.collection("blog");
+    const guideCollection = database.collection("guide");
 
     // ✅ Firebase Token Verification Middleware
     const verifyFirebaseToken = async (req, res, next) => {
@@ -150,71 +151,70 @@ async function run() {
       }
     });
     // PATCH: Update User Role
- app.patch('/updateRole/:id', async (req, res) => {
-  const userId = req.params.id;
-  const { role } = req.body;
+    app.patch("/updateRole/:id", async (req, res) => {
+      const userId = req.params.id;
+      const { role } = req.body;
 
-  if (!userId || !ObjectId.isValid(userId)) {
-    return res.status(400).json({ error: "Invalid user ID" });
-  }
-
-  if (!["user", "member"].includes(role)) {
-    return res.status(400).json({ error: "Invalid role" });
-  }
-
-  try {
-    const result = await usersCollection.updateOne(
-      { _id: new ObjectId(userId) },
-      { $set: { role } }
-    );
-
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.status(200).json({ message: "Role updated successfully" });
-  } catch (error) {
-    console.error("Update error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-// Update user route with image upload
-app.patch("/adduser/:id", async (req, res) => {
-  const { id } = req.params;
-  const { name, email, photoURL } = req.body;
-
-  try {
-    const result = await usersCollection.updateOne(
-      { _id: new ObjectId(id) },
-      {
-        $set: { name, email, photoURL },
+      if (!userId || !ObjectId.isValid(userId)) {
+        return res.status(400).json({ error: "Invalid user ID" });
       }
-    );
-    res.send(result);
-  } catch (err) {
-    console.error("❌ Error updating user:", err);
-    res.status(500).send({ message: "Update failed", error: err.message });
-  }
-});
-// DELETE a user by ID
-app.delete("/adduser/:id", async (req, res) => {
-  const id = req.params.id;
 
-  try {
-    const query = { _id: new ObjectId(id) };
-    const result = await usersCollection.deleteOne(query);
+      if (!["user", "member"].includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
 
-    if (result.deletedCount > 0) {
-      res.send({ success: true, message: "User deleted" });
-    } else {
-      res.status(404).send({ success: false, message: "User not found" });
-    }
-  } catch (error) {
-    console.error("Error deleting user:", error);
-    res.status(500).send({ success: false, message: "Server error" });
-  }
-});
+      try {
+        const result = await usersCollection.updateOne(
+          { _id: new ObjectId(userId) },
+          { $set: { role } }
+        );
 
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: "User not found" });
+        }
+
+        res.status(200).json({ message: "Role updated successfully" });
+      } catch (error) {
+        console.error("Update error:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+    // Update user route with image upload
+    app.patch("/adduser/:id", async (req, res) => {
+      const { id } = req.params;
+      const { name, email, photoURL } = req.body;
+
+      try {
+        const result = await usersCollection.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $set: { name, email, photoURL },
+          }
+        );
+        res.send(result);
+      } catch (err) {
+        console.error("❌ Error updating user:", err);
+        res.status(500).send({ message: "Update failed", error: err.message });
+      }
+    });
+    // DELETE a user by ID
+    app.delete("/adduser/:id", async (req, res) => {
+      const id = req.params.id;
+
+      try {
+        const query = { _id: new ObjectId(id) };
+        const result = await usersCollection.deleteOne(query);
+
+        if (result.deletedCount > 0) {
+          res.send({ success: true, message: "User deleted" });
+        } else {
+          res.status(404).send({ success: false, message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error deleting user:", error);
+        res.status(500).send({ success: false, message: "Server error" });
+      }
+    });
 
     // ✅ Correct server route for adding roles
     app.post("/api/roles", async (req, res) => {
@@ -237,31 +237,30 @@ app.delete("/adduser/:id", async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
       }
     });
-// Express route - Search users by name, email, or role (partial, case-insensitive)
-app.get("/searchUsers", async (req, res) => {
-  const { query } = req.query;
-  if (!query) return res.json([]);
+    // Express route - Search users by name, email, or role (partial, case-insensitive)
+    app.get("/searchUsers", async (req, res) => {
+      const { query } = req.query;
+      if (!query) return res.json([]);
 
-  try {
-    const regex = new RegExp(query, "i"); // i = case-insensitive
+      try {
+        const regex = new RegExp(query, "i"); // i = case-insensitive
 
-    const users = await usersCollection
-      .find({
-        $or: [
-          { name: { $regex: regex } },
-          { email: { $regex: regex } },
-          { role: { $regex: regex } },
-        ],
-      })
-      .toArray();
+        const users = await usersCollection
+          .find({
+            $or: [
+              { name: { $regex: regex } },
+              { email: { $regex: regex } },
+              { role: { $regex: regex } },
+            ],
+          })
+          .toArray();
 
-    res.json(users);
-  } catch (error) {
-    console.error("Search error:", error);
-    res.status(500).json({ message: "Failed to search users" });
-  }
-});
-
+        res.json(users);
+      } catch (error) {
+        console.error("Search error:", error);
+        res.status(500).json({ message: "Failed to search users" });
+      }
+    });
 
     // Get All User_Role
     app.get("/api/roles", async (req, res) => {
@@ -269,7 +268,7 @@ app.get("/searchUsers", async (req, res) => {
       const result = await cursor.toArray();
       res.send(result);
     });
-        // Delete a User_Role
+    // Delete a User_Role
     app.delete("/api/roles/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -278,121 +277,129 @@ app.get("/searchUsers", async (req, res) => {
     });
     // Service Section
     app.post("/api/services", async (req, res) => {
-  try {
-    const service = req.body;
-    const result = await serviceCollection.insertOne(service);
-    res.status(201).send(result);
-  } catch (error) {
-    console.error("❌ Error saving service:", error);
-    res.status(500).json({ error: "Internal Server Error" });
-  }
-});
-// Get all services
-app.get("/api/services", async (req, res) => {
-  try {
-    const services = await serviceCollection.find().toArray();
-    res.send(services);
-  } catch (err) {
-    res.status(500).send({ message: "Error fetching services" });
-  }
-});
+      try {
+        const service = req.body;
+        const result = await serviceCollection.insertOne(service);
+        res.status(201).send(result);
+      } catch (error) {
+        console.error("❌ Error saving service:", error);
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    });
+    // Get all services
+    app.get("/api/services", async (req, res) => {
+      try {
+        const services = await serviceCollection.find().toArray();
+        res.send(services);
+      } catch (err) {
+        res.status(500).send({ message: "Error fetching services" });
+      }
+    });
 
-// Delete a service by ID
-app.delete("/api/services/:id", async (req, res) => {
-  const id = req.params.id;
-  try {
-    const result = await serviceCollection.deleteOne({ _id: new ObjectId(id) });
-    if (result.deletedCount === 1) {
-      res.send({ success: true });
-    } else {
-      res.status(404).send({ success: false, message: "Service not found" });
-    }
-  } catch (err) {
-    res.status(500).send({ success: false, message: "Delete failed" });
-  }
-});
-// Package Section
-app.post("/packageCollection", async (req, res) => {
-  const data = req.body;
-  const result = await packageCollection.insertOne(data);
-  res.send(result);
-});
-// GET all packages
-app.get("/api/packages", async (req, res) => {
-  try {
-    const packages = await packageCollection.find().toArray();
-    res.send(packages);
-  } catch (error) {
-    res.status(500).send({ error: "Failed to fetch packages" });
-  }
-});
+    // Delete a service by ID
+    app.delete("/api/services/:id", async (req, res) => {
+      const id = req.params.id;
+      try {
+        const result = await serviceCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        if (result.deletedCount === 1) {
+          res.send({ success: true });
+        } else {
+          res
+            .status(404)
+            .send({ success: false, message: "Service not found" });
+        }
+      } catch (err) {
+        res.status(500).send({ success: false, message: "Delete failed" });
+      }
+    });
+    // Package Section
+    app.post("/packageCollection", async (req, res) => {
+      const data = req.body;
+      const result = await packageCollection.insertOne(data);
+      res.send(result);
+    });
+    // GET all packages
+    app.get("/api/packages", async (req, res) => {
+      try {
+        const packages = await packageCollection.find().toArray();
+        res.send(packages);
+      } catch (error) {
+        res.status(500).send({ error: "Failed to fetch packages" });
+      }
+    });
 
-// DELETE a package
-app.delete("/api/packages/:id", async (req, res) => {
-  const id = req.params.id;
-  try {
-    const result = await packageCollection.deleteOne({ _id: new ObjectId(id) });
-    if (result.deletedCount === 1) {
-      res.send({ message: "Package deleted successfully" });
-    } else {
-      res.status(404).send({ error: "Package not found" });
-    }
-  } catch (error) {
-    res.status(500).send({ error: "Failed to delete package" });
-  }
-});
-// Get a single package
-// GET a single package by ID
-app.get("/api/packages/:id", async (req, res) => {
-  const { id } = req.params;
+    // DELETE a package
+    app.delete("/api/packages/:id", async (req, res) => {
+      const id = req.params.id;
+      try {
+        const result = await packageCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        if (result.deletedCount === 1) {
+          res.send({ message: "Package deleted successfully" });
+        } else {
+          res.status(404).send({ error: "Package not found" });
+        }
+      } catch (error) {
+        res.status(500).send({ error: "Failed to delete package" });
+      }
+    });
+    // Get a single package
+    // GET a single package by ID
+    app.get("/api/packages/:id", async (req, res) => {
+      const { id } = req.params;
 
-  if (!ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "Invalid ID" });
-  }
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
 
-  try {
-    const result = await packageCollection.findOne({ _id: new ObjectId(id) });
-    if (!result) {
-      return res.status(404).json({ message: "Package not found" });
-    }
-    res.json(result);
-  } catch (error) {
-    console.error("❌ Error fetching package:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
+      try {
+        const result = await packageCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        if (!result) {
+          return res.status(404).json({ message: "Package not found" });
+        }
+        res.json(result);
+      } catch (error) {
+        console.error("❌ Error fetching package:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
 
-// Put
-app.patch("/api/update/packages/:id", async (req, res) => {
-  const { id } = req.params;
-  const updatedData = { ...req.body };
+    // Put
+    app.patch("/api/update/packages/:id", async (req, res) => {
+      const { id } = req.params;
+      const updatedData = { ...req.body };
 
-  if (!ObjectId.isValid(id)) {
-    return res.status(400).json({ message: "Invalid ID" });
-  }
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).json({ message: "Invalid ID" });
+      }
 
-  // Remove _id if present in the update payload
-  if (updatedData._id) {
-    delete updatedData._id;
-  }
+      // Remove _id if present in the update payload
+      if (updatedData._id) {
+        delete updatedData._id;
+      }
 
-  try {
-    const result = await packageCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: updatedData }
-    );
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ message: "Package not found" });
-    }
-    res.json({ message: "Package updated successfully" });
-  } catch (error) {
-    console.error("PATCH update error stack:", error.stack);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+      try {
+        const result = await packageCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedData }
+        );
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: "Package not found" });
+        }
+        res.json({ message: "Package updated successfully" });
+      } catch (error) {
+        console.error("PATCH update error stack:", error.stack);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
 
-// Moderator Section
- app.get("/api/mypost", verifyFirebaseToken, async (req, res) => {
+    // Moderator Section
+    app.get("/api/mypost", verifyFirebaseToken, async (req, res) => {
       try {
         const email = req.user.email; // use req.user.email instead of authorEmail
         // No search parameter or filter
@@ -412,47 +419,47 @@ app.patch("/api/update/packages/:id", async (req, res) => {
       }
     });
     // Update status
-app.put("/api/packages/status/:id", async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
+    app.put("/api/packages/status/:id", async (req, res) => {
+      const { id } = req.params;
+      const { status } = req.body;
 
-  try {
-    const result = await packageCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { status } }
-    );
+      try {
+        const result = await packageCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status } }
+        );
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ message: "Package not found" });
-    }
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: "Package not found" });
+        }
 
-    res.json({ message: "Status updated successfully" });
-  } catch (error) {
-    console.error("❌ Server error while updating status:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-app.post("/api/blogs", async (req, res) => {
-  const { title, article, thumbnail, email, status, videoUrl } = req.body;
+        res.json({ message: "Status updated successfully" });
+      } catch (error) {
+        console.error("❌ Server error while updating status:", error);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
+    app.post("/api/blogs", async (req, res) => {
+      const { title, article, thumbnail, email, status, videoUrl } = req.body;
 
-  if (!title || !article || !thumbnail || !email) {
-    return res.status(400).json({ message: "Missing required fields" });
-  }
+      if (!title || !article || !thumbnail || !email) {
+        return res.status(400).json({ message: "Missing required fields" });
+      }
 
-  const blog = {
-    title,
-    article,
-    thumbnail,
-    email,
-    status,
-    videoUrl: videoUrl || "", // ✅ handle optional
-  };
+      const blog = {
+        title,
+        article,
+        thumbnail,
+        email,
+        status,
+        videoUrl: videoUrl || "", // ✅ handle optional
+      };
 
-  const result = await blogCollection.insertOne(blog);
-  res.status(201).json(result);
-});
-// My Post
- app.get("/api/myblog", verifyFirebaseToken, async (req, res) => {
+      const result = await blogCollection.insertOne(blog);
+      res.status(201).json(result);
+    });
+    // My Post
+    app.get("/api/myblog", verifyFirebaseToken, async (req, res) => {
       try {
         const email = req.user.email; // use req.user.email instead of authorEmail
         // No search parameter or filter
@@ -473,43 +480,127 @@ app.post("/api/blogs", async (req, res) => {
     });
     // Blog Status Update
     app.put("/api/blog/status/:id", async (req, res) => {
-  const { id } = req.params;
-  const { status } = req.body;
+      const { id } = req.params;
+      const { status } = req.body;
 
-  try {
-    const result = await blogCollection.updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { status } }
-    );
+      try {
+        const result = await blogCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status } }
+        );
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({ message: "Package not found" });
-    }
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: "Package not found" });
+        }
 
-    res.json({ message: "Status updated successfully" });
-  } catch (error) {
-    console.error("❌ Server error while updating status:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-// DELETE a package
-app.delete("/api/blog/:id", async (req, res) => {
-  const id = req.params.id;
-  try {
-    const result = await blogCollection.deleteOne({ _id: new ObjectId(id) });
-    if (result.deletedCount === 1) {
-      res.send({ message: "Package deleted successfully" });
-    } else {
-      res.status(404).send({ error: "Package not found" });
-    }
-  } catch (error) {
-    res.status(500).send({ error: "Failed to delete package" });
-  }
-});
+        res.json({ message: "Status updated successfully" });
+      } catch (error) {
+        console.error("❌ Server error while updating status:", error);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
+    // DELETE a package
+    app.delete("/api/blog/:id", async (req, res) => {
+      const id = req.params.id;
+      try {
+        const result = await blogCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        if (result.deletedCount === 1) {
+          res.send({ message: "Package deleted successfully" });
+        } else {
+          res.status(404).send({ error: "Package not found" });
+        }
+      } catch (error) {
+        res.status(500).send({ error: "Failed to delete package" });
+      }
+    });
+    // POST /api/guides
+    // In your Express server (e.g., routes/guides.js or inside app.js)
 
+    app.post("/api/guides", async (req, res) => {
+      const { name, image, fb_link, instagram_link, status, email } = req.body;
 
+      if (!name || !image) {
+        return res
+          .status(400)
+          .json({ message: "Name and image are required." });
+      }
 
+      const guide = {
+        name,
+        image,
+        fb_link: fb_link || "",
+        instagram_link: instagram_link || "",
+        status: status || 1,
+        email: email || "", // optionally save email
+        createdAt: new Date(),
+      };
 
+      try {
+        const result = await guideCollection.insertOne(guide);
+        res.status(201).json(result);
+      } catch (error) {
+        console.error("Error inserting guide:", error);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
+    // Guide
+    app.get("/api/guide", verifyFirebaseToken, async (req, res) => {
+      try {
+        const email = req.user.email; // use req.user.email instead of authorEmail
+        // No search parameter or filter
+        const query = {
+          email: email, // assuming in DB the field is authorEmail
+        };
+
+        const userPosts = await guideCollection
+          .find(query)
+          .sort({ _id: -1 }) // sort descending by _id (latest first)
+          .toArray();
+
+        res.json(userPosts);
+      } catch (error) {
+        console.error("❌ Get Posts Error:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    app.put("/api/guide/status/:id", async (req, res) => {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      try {
+        const result = await guideCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status } }
+        );
+
+        if (result.matchedCount === 0) {
+          return res.status(404).json({ message: "Package not found" });
+        }
+
+        res.json({ message: "Status updated successfully" });
+      } catch (error) {
+        console.error("❌ Server error while updating status:", error);
+        res.status(500).json({ message: "Server error" });
+      }
+    });
+    // DELETE a package
+    app.delete("/api/guide/:id", async (req, res) => {
+      const id = req.params.id;
+      try {
+        const result = await guideCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        if (result.deletedCount === 1) {
+          res.send({ message: "Package deleted successfully" });
+        } else {
+          res.status(404).send({ error: "Package not found" });
+        }
+      } catch (error) {
+        res.status(500).send({ error: "Failed to delete package" });
+      }
+    });
 
     // Rest Of MongoDB Code
 
