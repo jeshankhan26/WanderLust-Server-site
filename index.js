@@ -276,16 +276,38 @@ async function run() {
       res.send(result);
     });
     // Service Section
-    app.post("/api/services", async (req, res) => {
-      try {
-        const service = req.body;
-        const result = await serviceCollection.insertOne(service);
-        res.status(201).send(result);
-      } catch (error) {
-        console.error("❌ Error saving service:", error);
-        res.status(500).json({ error: "Internal Server Error" });
-      }
+// Backend: POST /api/services
+app.post("/api/services", async (req, res) => {
+  try {
+    const { title, subtitle, iconUrl, email } = req.body;
+
+    // ✅ Basic inline validation (fast)
+    if (!title || !subtitle || !iconUrl || !email) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    // ✅ Clean and minimal insert
+    const service = {
+      title: title.trim(),
+      subtitle: subtitle.trim(),
+      iconUrl: iconUrl.trim(),
+      email: email.trim(),
+      createdAt: new Date(),
+    };
+
+    const result = await serviceCollection.insertOne(service);
+
+    // ✅ Quick response
+    res.status(201).json({
+      message: "Service created successfully",
+      insertedId: result.insertedId,
     });
+  } catch (error) {
+    console.error("❌ Error saving service:", error);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+});
+
     // Get all services
     app.get("/api/services", async (req, res) => {
       try {
@@ -458,6 +480,32 @@ async function run() {
       const result = await blogCollection.insertOne(blog);
       res.status(201).json(result);
     });
+    app.get("/api/blogs", async (req, res) => {
+      try {
+        const services = await blogCollection.find().toArray();
+        res.send(services);
+      } catch (err) {
+        res.status(500).send({ message: "Error fetching services" });
+      }
+    });
+
+// GET single blog by ID
+app.get("/api/blog/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const blog = await blogCollection.findOne({ _id: new ObjectId(id) });
+
+    if (!blog) {
+      return res.status(404).send({ error: "Blog not found" });
+    }
+
+    res.send(blog);
+  } catch (error) {
+    console.error("❌ Failed to fetch blog:", error);
+    res.status(500).send({ error: "Failed to fetch blog" });
+  }
+});
+
     // My Post
     app.get("/api/myblog", verifyFirebaseToken, async (req, res) => {
       try {
@@ -478,6 +526,7 @@ async function run() {
         res.status(500).json({ message: "Internal server error" });
       }
     });
+    
     // Blog Status Update
     app.put("/api/blog/status/:id", async (req, res) => {
       const { id } = req.params;
@@ -543,6 +592,14 @@ async function run() {
       } catch (error) {
         console.error("Error inserting guide:", error);
         res.status(500).json({ message: "Server error" });
+      }
+    });
+     app.get("/api/guides", async (req, res) => {
+      try {
+        const services = await guideCollection.find().toArray();
+        res.send(services);
+      } catch (err) {
+        res.status(500).send({ message: "Error fetching services" });
       }
     });
     // Guide
