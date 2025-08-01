@@ -53,6 +53,8 @@ async function run() {
     const packageCollection = database.collection("package");
     const blogCollection = database.collection("blog");
     const guideCollection = database.collection("guide");
+    const bookingCollection = database.collection("bookingCollection");
+    const paymentCollection = database.collection("paymentCollection");
 
     // ✅ Firebase Token Verification Middleware
     const verifyFirebaseToken = async (req, res, next) => {
@@ -657,6 +659,19 @@ app.get("/api/blog/:id", async (req, res) => {
       } catch (error) {
         res.status(500).send({ error: "Failed to delete package" });
       }
+    });
+    // ✅ Save booking data
+    app.post("/api/bookings", async (req, res) => {
+      const bookingData = req.body;
+      const result = await bookingCollection.insertOne(bookingData);
+      res.send(result);
+    });
+
+    // ✅ Save payment data
+    app.post("/api/payments", async (req, res) => {
+      const paymentData = req.body;
+      const result = await paymentCollection.insertOne(paymentData);
+      res.send(result);
     });
 
     // Rest Of MongoDB Code
