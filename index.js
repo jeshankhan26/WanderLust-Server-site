@@ -684,6 +684,60 @@ app.get("/api/blog/:id", async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
       }
     });
+     app.get("/api/booking", verifyFirebaseToken, async (req, res) => {
+      try {
+        const email = req.user.email; 
+        const query = {
+          authorEmail: email, 
+        };
+
+        const userPosts = await bookingCollection
+          .find(query)
+          .sort({ _id: -1 }) // sort descending by _id (latest first)
+          .toArray();
+
+        res.json(userPosts);
+      } catch (error) {
+        console.error("❌ Get Posts Error:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+    // Update booking status
+app.put("/api/booking/:id", verifyFirebaseToken, async (req, res) => {
+  const bookingId = req.params.id;
+  const { status } = req.body;
+
+  if (![0, 1, 2].includes(status)) {
+    return res.status(400).json({ error: "Invalid status value" });
+  }
+
+  try {
+    const booking = await bookingCollection.findOne({ _id: new ObjectId(bookingId) });
+
+    if (!booking) {
+      return res.status(404).json({ error: "Booking not found" });
+    }
+
+    // Update status
+    const updateResult = await bookingCollection.updateOne(
+      { _id: new ObjectId(bookingId) },
+      { $set: { status } }
+    );
+
+    if (updateResult.modifiedCount === 0) {
+      return res.status(500).json({ error: "Failed to update booking status" });
+    }
+
+    // Return updated booking (optional re-fetch)
+    const updatedBooking = await bookingCollection.findOne({ _id: new ObjectId(bookingId) });
+
+    res.json({ message: "Status updated", booking: updatedBooking });
+  } catch (error) {
+    console.error("Booking update error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 
     // ✅ Save payment data
     app.post("/api/payments", async (req, res) => {
@@ -701,6 +755,24 @@ app.get("/api/blog/:id", async (req, res) => {
         const userPosts = await paymentCollection
           .find(query)
           .sort({ _id: -1 }) // sort descending by _id (latest first)
+          .toArray();
+
+        res.json(userPosts);
+      } catch (error) {
+        console.error("❌ Get Posts Error:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
+     app.get("/api/payments", verifyFirebaseToken, async (req, res) => {
+      try {
+        const email = req.user.email; 
+        const query = {
+          authorEmail: email, 
+        };
+
+        const userPosts = await paymentCollection
+          .find(query)
+          .sort({ _id: -1 }) 
           .toArray();
 
         res.json(userPosts);
