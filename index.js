@@ -666,12 +666,48 @@ app.get("/api/blog/:id", async (req, res) => {
       const result = await bookingCollection.insertOne(bookingData);
       res.send(result);
     });
+     app.get("/api/mybooking", verifyFirebaseToken, async (req, res) => {
+      try {
+        const email = req.user.email; 
+        const query = {
+          userEmail: email, 
+        };
+
+        const userPosts = await bookingCollection
+          .find(query)
+          .sort({ _id: -1 }) // sort descending by _id (latest first)
+          .toArray();
+
+        res.json(userPosts);
+      } catch (error) {
+        console.error("❌ Get Posts Error:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
+    });
 
     // ✅ Save payment data
     app.post("/api/payments", async (req, res) => {
       const paymentData = req.body;
       const result = await paymentCollection.insertOne(paymentData);
       res.send(result);
+    });
+     app.get("/api/mypayments", verifyFirebaseToken, async (req, res) => {
+      try {
+        const email = req.user.email; 
+        const query = {
+          userEmail: email, 
+        };
+
+        const userPosts = await paymentCollection
+          .find(query)
+          .sort({ _id: -1 }) // sort descending by _id (latest first)
+          .toArray();
+
+        res.json(userPosts);
+      } catch (error) {
+        console.error("❌ Get Posts Error:", error);
+        res.status(500).json({ message: "Internal server error" });
+      }
     });
 
     // Rest Of MongoDB Code
